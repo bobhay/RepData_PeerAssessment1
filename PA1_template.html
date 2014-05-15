@@ -184,7 +184,16 @@ hljs.initHighlightingOnLoad();
 
 <pre><code class="r">unzip(&quot;activity.zip&quot;)
 aData &lt;- read.csv(&quot;activity.csv&quot;)
-summary(aData)
+str(aData)
+</code></pre>
+
+<pre><code>## &#39;data.frame&#39;:    17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Factor w/ 61 levels &quot;2012-10-01&quot;,&quot;2012-10-02&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+</code></pre>
+
+<pre><code class="r">summary(aData)
 </code></pre>
 
 <pre><code>##      steps               date          interval   
@@ -248,9 +257,67 @@ plot(steps_per_interval, type = &quot;l&quot;, xlab = &quot;Interval&quot;, ylab
 <pre><code>## [1] 10927
 </code></pre>
 
-<p>The peak is actually the 104th interval showing an average of 10,927 steps. (That&#39;s a lot of steps! Over 2000 per minute. From this one might infer that the individual in this study goes for a morning run at that time each day.)</p>
+<p>The peak is actually the 104th interval showing a sum of 10,927 steps. (From this, one might infer that the individual in this study goes for a morning run at that time each day.)</p>
 
 <h2>Imputing missing values</h2>
+
+<p>The data summary at the beginning of this report shows that there are 2304 missings values (NA) for the step variable. This is about 13% of the total observations.</p>
+
+<p>To &ldquo;impute&rdquo; the missing variables, I first calculated the average value for each interval. </p>
+
+<pre><code class="r">step_means &lt;- sapply(steps_per_interval, function(x) {
+    round(x/61)
+})
+</code></pre>
+
+<p>Then, I substituted the average value for whatever interval the NA happened to be in.</p>
+
+<pre><code class="r">imputeNAs &lt;- function(X) {
+    Y &lt;- c()
+    L &lt;- nrow(X)
+    for (i in seq(1:L)) {
+        ifelse(is.na(X[i, 1]), Y &lt;- c(Y, step_means[X[i, 3]]), Y &lt;- c(Y, X[i, 
+            1]))
+    }
+    return(as.vector(Y))
+}
+
+old_steps &lt;- aData$steps
+new_steps &lt;- imputeNAs(aData)
+aData$steps &lt;- new_steps
+</code></pre>
+
+<p>A histogram of the average number of steps per day for the altered data is shown. The most notable change is a big increase in the 9,000-10,000 range. Overall the graph looks more &ldquo;normal.&rdquo;</p>
+
+<pre><code class="r">steps_per_day &lt;- by(aData$steps, aData$date, sum, na.rm = TRUE)
+hist(steps_per_day, breaks = 30, xlab = &quot;Steps per day&quot;)
+</code></pre>
+
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfgAAAEgCAMAAABvm5EPAAAAk1BMVEX9/v0AAAAAAHAAAJoAcHAAcJoAcLkAmpoAmrkAmtJwAABwAHBwAJpwcABwcJpwcLlwmtJwutJwuumaAACaAHCaAJqacACacLmamgCampqa1P25cAC5cHC5cJq5mgC5unC51Lm56tK56um56v3SmgDSmnDS/v3punDp6rnp/tLp/unp/v391Jr96rn9/tL9/un9/v0tYmCNAAAAMXRSTlP///////////////////////////////////////////////////////////////8AH5pOIQAAAAlwSFlzAAALEgAACxIB0t1+/AAAC4RJREFUeJztnY2Wo7gRRhd30ll3JpmkPdlN7El2J2bNTto/vP/TRSUJDBgkDDIuqb57zhz3iOqy0G0JYSP4oQQi+eHZFQDPAeKFAvFCgXihQLxQIF4oEC8UiBcKxAsF4oUC8UKBeKFAvFAgXigQLxSIFwrECwXihQLxQoF4oUC8UCBeKBAvFIgXCsQLJRrx583LoSwvu5eD+aki385IenrLVvtWyax0LaiqoXI9gAjFt4rzbI6pm9+el64FxIeh0+NVX81eDpddlmXrsjyql3eKyrPVf3dU/vKL6stUrGKP2Y879VpktVUTr3/79YMK2unyTIeqN/rFBJjNzbrYDVWofcM6QhX/faff2uTVP74v11p+IhV/3mQk7X/GVEH/oXYlDau/WIOv33XQWre+wcqz8Vfx7XS53ry1parAbv641sVuqEMbf0NEbt/tbGtQqJC8c1B5MhGJz+rWfDmc3mwr50bQVnVK2qIa92i6ru1eFEglqs9u9WaTysTXI3srnf7PefP6UcfVm691aWyg0Osbmu22HlXu09ua28gfqXj9P2rJ2hT1KP3DRQ/1teKMxK/1gFGV1vG1+Fa6Y/ONdFy9ua6L3VCHVqkNdT2qGlx2avhZL9lcXiISf3OMz6y6PvEUrGNq8dT8Q+Jb6axN8m391ptbdbmKX+3b/bmuR1WDslj9+sbqEB+teIIsDQ31FFKo4ffYI/52qG+lqwd2Ffdu4qrNdV3shjq0LV6/wVHPJ00Nes4bn02k4k1X0ur6J3dGfH+Pb8ZXx/hmurw1p1M/1JvrurQnd+vuuVthjwBVDWjy154mPJ1IxWsXpFG9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" alt="plot of chunk unnamed-chunk-8"/> </p>
+
+<p>Looking a a summary of the altered data we see that there are no missing values and that the mean is now 10,400 (up from 9,354), which makes sense since before the NA values were essential zeroes. The median went up only slightly from 10,395 to 10,400.</p>
+
+<pre><code class="r">summary(steps_per_day)
+</code></pre>
+
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##      41    9350   10400   10600   12800   21200
+</code></pre>
+
+<p>As I worked with the missing data, I became curious about how the NAs were distrubuted in the data. I ran The following R code to count how many NAs occured each day. It shows that the missing data are actually missing DAYS. Basically, 8 of the 61 days are missing. Given this, I think the NA values maybe should not be imputed, since each of those missing days gets replaced by identical &ldquo;average&rdquo; days, which would smooth the data towards the normal.</p>
+
+<pre><code class="r">aData$steps &lt;- old_steps
+nas_per_day &lt;- by(aData$steps, aData$date, function(x) {
+    sum(is.na(x))
+})
+as.vector(nas_per_day)
+</code></pre>
+
+<pre><code>##  [1] 288   0   0   0   0   0   0 288   0   0   0   0   0   0   0   0   0
+## [18]   0   0   0   0   0   0   0   0   0   0   0   0   0   0 288   0   0
+## [35] 288   0   0   0   0 288 288   0   0   0 288   0   0   0   0   0   0
+## [52]   0   0   0   0   0   0   0   0   0 288
+</code></pre>
 
 <h2>Are there differences in activity patterns between weekdays and weekends?</h2>
 

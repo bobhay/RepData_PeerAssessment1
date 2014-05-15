@@ -7,6 +7,17 @@
 ```r
 unzip("activity.zip")
 aData <- read.csv("activity.csv")
+str(aData)
+```
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Factor w/ 61 levels "2012-10-01","2012-10-02",..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+```
+
+```r
 summary(aData)
 ```
 
@@ -85,9 +96,76 @@ max(steps_per_interval)
 ## [1] 10927
 ```
 
-The peak is actually the 104th interval showing an average of 10,927 steps. (That's a lot of steps! Over 2000 per minute. From this one might infer that the individual in this study goes for a morning run at that time each day.)
+The peak is actually the 104th interval showing a sum of 10,927 steps. (From this, one might infer that the individual in this study goes for a morning run at that time each day.)
 
 ## Imputing missing values
+The data summary at the beginning of this report shows that there are 2304 missings values (NA) for the step variable. This is about 13% of the total observations.
+
+To "impute" the missing variables, I first calculated the average value for each interval. 
+
+
+```r
+step_means <- sapply(steps_per_interval, function(x) {
+    round(x/61)
+})
+```
+
+Then, I substituted the average value for whatever interval the NA happened to be in.
+
+
+```r
+imputeNAs <- function(X) {
+    Y <- c()
+    L <- nrow(X)
+    for (i in seq(1:L)) {
+        ifelse(is.na(X[i, 1]), Y <- c(Y, step_means[X[i, 3]]), Y <- c(Y, X[i, 
+            1]))
+    }
+    return(as.vector(Y))
+}
+
+old_steps <- aData$steps
+new_steps <- imputeNAs(aData)
+aData$steps <- new_steps
+```
+
+A histogram of the average number of steps per day for the altered data is shown. The most notable change is a big increase in the 9,000-10,000 range. Overall the graph looks more "normal."
+
+```r
+steps_per_day <- by(aData$steps, aData$date, sum, na.rm = TRUE)
+hist(steps_per_day, breaks = 30, xlab = "Steps per day")
+```
+
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
+
+
+Looking a a summary of the altered data we see that there are no missing values and that the mean is now 10,400 (up from 9,354), which makes sense since before the NA values were essential zeroes. The median went up only slightly from 10,395 to 10,400.
+
+```r
+summary(steps_per_day)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##      41    9350   10400   10600   12800   21200
+```
+
+As I worked with the missing data, I became curious about how the NAs were distrubuted in the data. I ran The following R code to count how many NAs occured each day. It shows that the missing data are actually missing DAYS. Basically, 8 of the 61 days are missing. Given this, I think the NA values maybe should not be imputed, since each of those missing days gets replaced by identical "average" days, which would smooth the data towards the normal.
+
+```r
+aData$steps <- old_steps
+nas_per_day <- by(aData$steps, aData$date, function(x) {
+    sum(is.na(x))
+})
+as.vector(nas_per_day)
+```
+
+```
+##  [1] 288   0   0   0   0   0   0 288   0   0   0   0   0   0   0   0   0
+## [18]   0   0   0   0   0   0   0   0   0   0   0   0   0   0 288   0   0
+## [35] 288   0   0   0   0 288 288   0   0   0 288   0   0   0   0   0   0
+## [52]   0   0   0   0   0   0   0   0   0 288
+```
 
 
 
