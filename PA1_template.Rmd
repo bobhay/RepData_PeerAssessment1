@@ -3,15 +3,40 @@
 
 ## Loading and preprocessing the data
 
-
+```{r echo=TRUE}
+unzip("activity.zip")
+aData <- read.csv("activity.csv")
+summary(aData)
+```
+In the dataset there are 17568 row and 3 columns. The columns are "steps", "date", and "interval". The data is a record of the number of steps taken by an individual in each of 288 5-miinute intervals per day over a period of 61 days. 
 
 ## What is mean total number of steps taken per day?
+```{r echo=TRUE, fig.height=4}
+steps_per_day <- by(aData$steps, aData$date, sum, na.rm=TRUE)
+hist(steps_per_day, breaks=30, xlab="Steps per day")
+```
+In the histogram, it can be seen that the most common number of steps per day is about 10,000. This can be confirmed by calculating the mean and the median.
 
-
+```{r echo=TRUE}
+mean(steps_per_day)
+median(steps_per_day)
+```
 
 ## What is the average daily activity pattern?
 
+See the time of day when the most steps are taken in the following time series plot of the sum of steps per interval.
 
+```{r echo=TRUE, fig.height=4}
+aData$interval <- as.factor(aData$interval)
+steps_per_interval <- by(aData$steps, aData$interval, sum, na.rm=TRUE)
+plot(steps_per_interval, type="l", xlab="Interval", ylab="Steps taken")
+```
+It appears that, on average, the most steps are taken around the 100th interval, which is about 8:00 a.m. (The are 288 5-minute intervals per day or 12 per hour.)
+```{r echo=TRUE}
+which.max(steps_per_interval)
+max(steps_per_interval)
+```
+The peak is actually the 104th interval showing a sum of 10,927 steps. (From this, one might infer that the individual in this study goes for a morning run at that time each day.)
 
 ## Imputing missing values
 
