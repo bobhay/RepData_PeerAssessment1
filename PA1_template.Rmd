@@ -83,5 +83,23 @@ as.vector(nas_per_day)
 
 ```
 
-
 ## Are there differences in activity patterns between weekdays and weekends?
+
+The following two charts show the average number of steps taken per interval by the subject on weekend days and then by weekdays. The graphs are similar from midnight to the morning hours, but show that the weekend afternoons and evenings tend to be more active than they are on weekdays.
+
+```{r echo=TRUE}
+dtime <- as.character(aData$date)
+pdtime <- strptime(dtime, format='%Y-%m-%d')
+wd <- weekdays(pdtime)
+wed <- sapply(wd, function(x) {ifelse(x %in% c("Saturday", "Sunday"), "Weekend", "Weekday")})
+wef <- as.factor(wed)
+aData$wend <- wef
+par(mfrow = c(2,1))
+weData <- subset(aData, wend == "Weekend")
+wdData <- subset(aData, wend == "Weekday")
+steps_weekend <- by(weData$steps, weData$interval, mean, na.rm=TRUE)
+plot(steps_weekend, type="l", xlab="Interval", ylab="Steps taken", main="Weekend")
+steps_weekday <- by(wdData$steps, wdData$interval, mean, na.rm=TRUE)
+plot(steps_weekday, type="l", xlab="Interval", ylab="Steps taken", main="Weekday")
+
+```
